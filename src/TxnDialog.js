@@ -62,7 +62,7 @@ export default function FormDialog() {
   return (
     <ReportConsumer>
       { props => {
-        const [stocks, open, handleClose, handleTxnAdd] = props;
+        const [stocks, open, handleClose, handleTxnAdd, _, __, ___, ____] = props;
         const stockOptions = stocks.map(s => {
           return { value: s, label: s };
         })

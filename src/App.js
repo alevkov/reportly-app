@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ReportProvider } from './ReportContext';
 import TxnDialog from './TxnDialog';
+import RevalDialog from './RevalDialog';
 import { makeStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import {
@@ -60,8 +61,11 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(new Date('Jan 1 2017'));
   const [stocks, setStocks] = useState([]);
   const [txns, setTxns] = useState([]);
+  const [revals, setRevals] = useState([]);
+  const [finals, setFinals] = useState([]);
   const [sessionId, setSessionId] = useState(uuid.v4());
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [revalOpen, setRevalOpen] = React.useState(false);
 
   const fileInput = useRef(null);
   const forceUpdate = useForceUpdate();
@@ -78,7 +82,7 @@ export default function App() {
     if (stocks.length === 0) {
       const csv = await fileInput.current.files[0].text();
       const body = { csv: csv, boy: convertDateToSimpleFormat(selectedDate) };
-      const response = await axios.post(`http://127.0.0.1:5000/load/${sessionId}`, body)
+      const response = await axios.post(`https://reportly-rest-api.herokuapp.com/load/${sessionId}`, body)
 
       setStocks(response.data.stocks);
     }
@@ -89,6 +93,10 @@ export default function App() {
     setDialogOpen(false);
   }
 
+  function handleRevalClose() {
+    setRevalOpen(false);
+  }
+
   const handleTxnAdd = txn => {
     setTxns(txns.concat([txn]));
   }
@@ -97,13 +105,21 @@ export default function App() {
     setSelectedDate(date);
   }
 
-  async function handleRunReport() {
-    const body = {
-      'txin': txns
-    };
+  async function handleRunReval() {
+    const body = { 'txin': txns };
 
-    const response = await axios.post(`http://127.0.0.1:5000/txin/${sessionId}`, body)
-    console.log(response);
+    const response = await axios.post(`https://reportly-rest-api.herokuapp.com/txin/${sessionId}`, body)
+    setRevals(response.data.to_reval)
+    setRevalOpen(true);
+  }
+
+  async function handleContinueReport(revals) {
+    const body = { 'reval': revals };
+
+    const response = await axios.post(`https://reportly-rest-api.herokuapp.com/${sessionId}`, body)
+    setRevals([])
+    setRevalOpen(false);
+    setFinals(response.data.result);
   }
 
   function Header() {
@@ -116,10 +132,11 @@ export default function App() {
   }
 
   return (
-    <ReportProvider value={[stocks, dialogOpen, handleDialogClose, handleTxnAdd]}>
+    <ReportProvider value={[stocks, dialogOpen, handleDialogClose, handleTxnAdd, revals, revalOpen, handleRevalClose, handleContinueReport]}>
       <MuiPickersUtilsProvider utils={DateFnsUtils}>
         <div className="App">
           <TxnDialog />
+          <RevalDialog />
           <Header />
           <div className="initial">
             <form onSubmit={onSubmit}>
@@ -151,7 +168,7 @@ export default function App() {
               <Button variant="contained" color="primary" className={classes.button} type="submit">
                 Add Txn
               </Button>
-              <Button variant="contained" color="secondary" className={classes.button} onClick={handleRunReport}>
+              <Button variant="contained" color="secondary" className={classes.button} onClick={handleRunReval}>
                 Run Report
               </Button>
             </form>
@@ -159,6 +176,13 @@ export default function App() {
             { txns.map((item, index) => (
               <ListItem key={index}>
                 <ListItemText className={classes.listItem} primary={`\u2630 ${item.type === 0 ? "Buy" : "Sell"} | ${item.name} | $${item.price} | ${item.amount}`} />
+              </ListItem>
+            )) }
+          </List>
+          <List className={classes.root}>
+            { finals.map((item, index) => (
+              <ListItem key={index}>
+                <ListItemText className={classes.listItem} primary={`${item}`} />
               </ListItem>
             )) }
           </List>
