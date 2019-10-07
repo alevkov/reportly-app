@@ -116,7 +116,7 @@ export default function App() {
   async function handleContinueReport(revals) {
     const body = { 'reval': revals };
 
-    const response = await axios.post(`https://reportly-rest-api.herokuapp.com/${sessionId}`, body)
+    const response = await axios.post(`https://reportly-rest-api.herokuapp.com/reval/${sessionId}`, body)
     setRevals([])
     setRevalOpen(false);
     setFinals(response.data.result);
